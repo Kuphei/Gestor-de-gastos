@@ -614,7 +614,7 @@ function renderPagos(){
   document.getElementById('pay-select').innerHTML=debts.map(d=>`<option value="${d.id}">${d.name} — Resta: ${fmt(getRemaining(d))}</option>`).join('');
   document.getElementById('pay-date').value=new Date().toISOString().split('T')[0];
   const byMes={};
-  debts.forEach(d=>d.payments.forEach(p=>{const k=p.date?p.date.substring(0,7):'sin-fecha';if(!byMes[k])byMes[k]=[];byMes[k].push({...p,dname:d.name});}));
+  debts.forEach(d=>d.payments.forEach((p,pi)=>{const k=p.date?p.date.substring(0,7):'sin-fecha';if(!byMes[k])byMes[k]=[];byMes[k].push({...p,dname:d.name,_did:d.id,_pid:pi});}));
   const ms=Object.keys(byMes).sort().reverse();
   const el=document.getElementById('pay-history-all');
   if(!ms.length){el.innerHTML='<p style="color:var(--text3);font-style:italic;font-size:0.82rem;">Sin pagos registrados aún.</p>';return;}
@@ -624,7 +624,10 @@ function renderPagos(){
     return `<div class="hist-mes-title">${MESES_LABEL[m]||m} — Total: ${fmt(tot)}</div>`+
       items.map(p=>`<div class="pay-item">
         <div><div style="font-weight:700;font-size:0.83rem;">${p.dname}</div><div style="font-size:0.7rem;color:var(--text3);">${p.note||'Pago'} · ${p.date}</div></div>
-        <div class="pay-amt">${fmt(p.amount)}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="pay-amt">${fmt(p.amount)}</div>
+          <button class="btn btn-ghost btn-sm" style="color:#b86868;border-color:#f0c8c8;" onclick="deletePayment(${p._did},${p._pid})">✕</button>
+        </div>
       </div>`).join('');
   }).join('');
 }
@@ -640,6 +643,14 @@ function savePayment(){
   toast(`Pago de ${fmt(amount)} registrado`);
   document.getElementById('pay-amount').value='';document.getElementById('pay-note').value='';
   renderPagos();renderDashboard();
+}
+
+function deletePayment(did,pid){
+  if(!confirm('¿Eliminar este pago?'))return;
+  const d=debts.find(x=>x.id===did);if(!d)return;
+  d.payments.splice(pid,1);
+  saveDebts();renderPagos();renderDashboard();
+  toast('Pago eliminado.');
 }
 
 // ── INIT ──────────────────────────────────────────
